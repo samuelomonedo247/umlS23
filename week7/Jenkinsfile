@@ -10,7 +10,7 @@ podTemplate(yaml: '''
         args:
         - 99d
         volumeMounts:
-        - name: shared-storage
+        - name: jenkins-home
           mountPath: /mnt        
       - name: kaniko
         image: gcr.io/kaniko-project/executor:debug
