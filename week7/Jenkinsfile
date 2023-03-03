@@ -9,9 +9,7 @@ podTemplate(yaml: '''
         - sleep
         args:
         - 99d
-        volumeMounts:
-        - name: shared-storage
-          mountPath: /mnt        
+        volumeMounts:        
       - name: kaniko
         image: gcr.io/kaniko-project/executor:debug
         command:
@@ -44,7 +42,6 @@ podTemplate(yaml: '''
           cd /home/jenkins/agent/workspace/week7/Chapter08/sample1
           chmod +x gradlew
           ./gradlew build
-          mv ./build/libs/calculator-0.0.1-SNAPSHOT.jar /mnt
           '''
         }
       }
