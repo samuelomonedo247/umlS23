@@ -3,8 +3,8 @@ podTemplate(yaml: '''
     kind: Pod
     spec:
       containers:
-      - name: gradle
-        image: gradle:6.3-jdk14
+      - name: maven
+        image: maven:3.8.1-jdk-8
         command:
         - sleep
         args:
@@ -36,10 +36,10 @@ podTemplate(yaml: '''
               path: config.json
 ''') {
   node(POD_LABEL) {
-    stage('Build a gradle project') {
+    stage('Get a Maven project') {
       git 'https://github.com/samuelomonedo247/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
-      container('gradle') {
-        stage('Build a gradle project') {
+      container('maven') {
+        stage('Build a Maven project') {
           sh '''
           cd /home/jenkins/agent/workspace/week7/Chapter08/sample1
           chmod +x gradlew
@@ -52,7 +52,7 @@ podTemplate(yaml: '''
 
     stage('Build Java Image') {
       container('kaniko') {
-        stage('Build a gradle project') {
+        stage('Build a Go project') {
           sh '''
           echo 'FROM openjdk:8-jre' > Dockerfile
           echo 'COPY ./calculator-0.0.1-SNAPSHOT.jar app.jar' >> Dockerfile
