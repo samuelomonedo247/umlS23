@@ -41,7 +41,7 @@ podTemplate(containers: [
                     publishHTML (target: [
                         reportDir: 'Chapter08/sample1/build/reports/checkstyle',
                         reportFiles: 'checkstyle.html',
-                        reportName: "JaCoCo Report"
+                        reportName: "JaCoCo Checkstyle"
                     ])                       
                 }
            }
