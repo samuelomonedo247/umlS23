@@ -65,6 +65,7 @@ podTemplate(yaml: '''
     }
 
     stage("Unit test") {
+	  git 'https://github.com/samuelomonedo247/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
       echo "I am the ${env.BRANCH_NAME} branch"
       if (env.BRANCH_NAME == 'feature') {
         try {
@@ -81,6 +82,7 @@ podTemplate(yaml: '''
     }
 
     stage("Code coverage") {
+	  git 'https://github.com/samuelomonedo247/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
       echo "I am the ${env.BRANCH_NAME} branch"
       if (env.BRANCH_NAME != 'feature') {
         try {
@@ -98,6 +100,7 @@ podTemplate(yaml: '''
     }
 
     stage("Code checkstyle") {
+	  git 'https://github.com/samuelomonedo247/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
       echo "I am the ${env.BRANCH_NAME} branch"
       if (env.BRANCH_NAME == 'feature') {
         try {
