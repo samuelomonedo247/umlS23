@@ -30,31 +30,29 @@ podTemplate(yaml: '''
           claimName: jenkins-pv-claim
       - name: kaniko-secret
         secret:
-          secretName: dockercred
-          items:
-          - key: .dockerconfigjson
-            path: config.json
+            secretName: dockercred
+            items:
+            - key: .dockerconfigjson
+              path: config.json
 ''') {
   node(POD_LABEL) {
     stage('Build a gradle project') {
       git 'https://github.com/samuelomonedo247/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
       container('gradle') {
         stage('Build a gradle project') {
-		    // from the git plugin
-            // https://www.jenkins.io/doc/pipeline/steps/git/
-            sh '''
-            cd Chapter08/sample1
-            chmod +x gradlew
-            ./gradlew build
-            mv ./build/libs/calculator-0.0.1-SNAPSHOT.jar /mnt
-            '''
+          sh '''
+          cd Chapter08/sample1
+          chmod +x gradlew
+          ./gradlew build
+          mv ./build/libs/calculator-0.0.1-SNAPSHOT.jar /mnt
+          '''
         }
       }
     }
 
     stage('Build Java Image') {
       container('kaniko') {
-        stage('Build a Java image') {
+        stage('Build a gradle project') {
           sh '''
           echo 'FROM openjdk:8-jre' > Dockerfile
           echo 'COPY ./calculator-0.0.1-SNAPSHOT.jar app.jar' >> Dockerfile
@@ -66,9 +64,12 @@ podTemplate(yaml: '''
       }
     }
 
+  }
+}
+
     stage("Unit test") {
             
-        if (env.BRANCH_NAME == 'main')
+        if (env.BRANCH_NAME == "master")
             {
            echo "I am the ${env.BRANCH_NAME} branch"
                    try {
@@ -76,6 +77,7 @@ podTemplate(yaml: '''
                       pwd
                       cd Chapter08/sample1
                       chmod +x gradlew
+                      ./gradlew test
                        '''
               }
 
@@ -83,13 +85,14 @@ podTemplate(yaml: '''
                echo 'Failure detected'
            }
              }
-        else if (env.BRANCH_NAME == 'feature') {
+        else if (env.BRANCH_NAME == "feature") {
            echo "I am the ${env.BRANCH_NAME} branch"
                    try {
                       sh '''
                       pwd
                       cd Chapter08/sample1
                       chmod +x gradlew
+                      ./gradlew test
                        '''
              }   
            
@@ -101,10 +104,9 @@ podTemplate(yaml: '''
            echo "I am the ${env.BRANCH_NAME} branch, I am jumping Unit test stage"
          }
         }
-		
     stage("Code coverage") {
             echo "I am the ${env.BRANCH_NAME} branch"
-        if  (env.BRANCH_NAME == 'main')
+        if  (env.BRANCH_NAME == "master")
             {
                     try {
                       sh '''
@@ -121,9 +123,10 @@ podTemplate(yaml: '''
              }
         }
 
+
     stage("Code checkstyle") {
            echo "I am the ${env.BRANCH_NAME} branch"
-       if (env.BRANCH_NAME == 'main') {
+       if (env.BRANCH_NAME == "master") {
                try {
                  sh '''
                  pwd
@@ -137,7 +140,7 @@ podTemplate(yaml: '''
                   echo 'Failure detected'
                }
        }
-       else if (env.BRANCH_NAME == 'feature') {
+       else if (env.BRANCH_NAME == "feature") {
                try {
                  sh '''
                  pwd
@@ -150,10 +153,9 @@ podTemplate(yaml: '''
                 catch (Exception E) {
                   echo 'Failure detected'
                 }
-        }
+         }
        else {
         echo "I am the ${env.BRANCH_NAME} branch, I am jumping Code checkstyle stage"
         }
-       }
-    }
-}
+     }          
+
