@@ -1,118 +1,51 @@
-podTemplate(yaml: '''
-    apiVersion: v1
-    kind: Pod
-    spec:
-      containers:
-      - name: gradle
-        image: gradle:6.3-jdk14
-        command:
-        - sleep
-        args:
-        - 99d
-        volumeMounts:
-        - name: shared-storage
-          mountPath: /mnt        
-      - name: kaniko
-        image: gcr.io/kaniko-project/executor:debug-v0.16.0
-        command:
-        - sleep
-        args:
-        - 9999999
-        volumeMounts:
-        - name: shared-storage
-          mountPath: /mnt
-        - name: kaniko-secret
-          mountPath: /kaniko/.docker
-      restartPolicy: Never
-      volumes:
-      - name: shared-storage
-        persistentVolumeClaim:
-          claimName: jenkins-pv-claim
-      - name: kaniko-secret
-        secret:
-          secretName: dockercred
-          items:
-          - key: .dockerconfigjson
-            path: config.json
-''') {
-  node(POD_LABEL) {
-    stage('Build a gradle project') {
-      git 'https://github.com/samuelomonedo247/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
-      container('gradle') {
-        stage('Build a gradle project') {
-          sh '''
-          cd Chapter08/sample1
-          chmod +x gradlew
-          ./gradlew build
-          mv ./build/libs/calculator-0.0.1-SNAPSHOT.jar /mnt
-          '''
+pipeline {
+    agent any
+    
+    stages {
+        stage('Build') {
+            when {
+                // Trigger when a new feature branch PR is created
+                expression { env.CHANGE_TARGET ==~ /^refs\/pull\/\d+\/merge$/ }
+            }
+            steps {
+                sh './gradlew build'
+            }
         }
-      }
-    }
-
-    stage('Build Java Image') {
-      container('kaniko') {
-        stage('Build a Java image') {
-          sh '''
-          echo 'FROM openjdk:8-jre' > Dockerfile
-          echo 'COPY ./calculator-0.0.1-SNAPSHOT.jar app.jar' >> Dockerfile
-          echo 'ENTRYPOINT ["java", "-jar", "app.jar"]' >> Dockerfile
-          mv /mnt/calculator-0.0.1-SNAPSHOT.jar .
-          /kaniko/executor --context `pwd` --destination somonedo/hello-kaniko:1.0
-          '''
+        stage('Test') {
+            when {
+                // Run on all branches except the playground branch
+                not { branch 'playground' }
+            }
+            steps {
+                // Run all tests on the feature branch except for jacocoTestCoverageVerification
+                if (env.BRANCH_NAME == 'feature') {
+                    sh './gradlew checkstyleMain jacocoTestReport test'
+                } else {
+                    sh './gradlew checkstyleMain jacocoTestCoverageVerification jacocoTestReport test'
+                }
+            }
         }
-      }
-    }
-
-    stage("Unit test") {
-	  git 'https://github.com/samuelomonedo247/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
-      echo "I am the ${env.BRANCH_NAME} branch"
-      if (env.BRANCH_NAME == 'feature') {
-        try {
-          sh '''
-          pwd
-          cd Chapter08/sample1
-          chmod +x gradlew
-          ./gradlew test
-          '''
-        } catch (Exception e) {
-          echo 'Failure detected'
+        stage('Build Container') {
+            when {
+                // Only build the container if the build was successful, and not on the playground branch
+                not { branch 'playground' }
+                allOf {
+                    expression { currentBuild.result == 'SUCCESS' }
+                    not { branch 'feature' }
+                }
+            }
+            steps {
+                script {
+                    def imageName = env.BRANCH_NAME == 'master' ? 'calculator' : 'calculator-feature'
+                    def version = env.BRANCH_NAME == 'master' ? '1.0' : '0.1'
+                    def imageFullName = "repository/${imageName}:${version}"
+                    try {
+                        sh "docker build -t ${imageFullName} ."
+                    } catch (err) {
+                        println "Failed to build docker image"
+                    }
+                }
+            }
         }
-      }
     }
-
-    stage("Code coverage") {
-	  git 'https://github.com/samuelomonedo247/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
-      echo "I am the ${env.BRANCH_NAME} branch"
-      if (env.BRANCH_NAME != 'feature') {
-        try {
-          sh '''
-          pwd
-          cd Chapter08/sample1
-          chmod +x gradlew
-          ./gradlew jacocoTestCoverageVerification
-          ./gradlew jacocoTestReport
-          '''
-        } catch (Exception e) {
-          echo 'Failure detected'
-        }
-      }
-    }
-
-    stage("Code checkstyle") {
-	  git 'https://github.com/samuelomonedo247/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
-      echo "I am the ${env.BRANCH_NAME} branch"
-      if (env.BRANCH_NAME == 'feature') {
-        try {
-          sh '''
-          pwd
-          cd Chapter08/sample1
-          chmod +x gradlew
-          ./gradlew checkstyleMain
-          ./gradlew jacocoTestReport
-          '''
-        } catch (Exception e) {
-          echo 'Failure
-		 } 
-    }
-   }
+}
